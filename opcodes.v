@@ -27,5 +27,6 @@
 
 `define	WORD_SIZE	16			
 `define	NUM_REGS	4
+`define SIG_SIZE 16
 
 `define NOP 16'hf00f

@@ -34,7 +34,7 @@ module data_path (
 	output [`WORD_SIZE-1:0] instruction;
 	input [`WORD_SIZE-1:0] PC;
 	output [`WORD_SIZE-1:0] nextPC;
-	input [11:0] signal;
+	input [`SIG_SIZE-1:0] signal;
 	output is_halted;
 
 
@@ -43,7 +43,7 @@ module data_path (
 	assign address1 = PC;
 
 	//change!
-	assign address2 = 0;
+	//assign address2 = 0;
 	assign writeM2 = 0;
 
 
@@ -66,7 +66,7 @@ module data_path (
 	wire [`WORD_SIZE-1:0] readData1;
 	wire [`WORD_SIZE-1:0] readData2;
 	reg [`WORD_SIZE-1:0] ID_EX_ins;
-	reg [`WORD_SIZE-1:0] ID_EX_signal;
+	reg [`SIG_SIZE-1:0] ID_EX_signal;
 	reg [`WORD_SIZE-1:0] ID_EX_readData1;
 	reg [`WORD_SIZE-1:0] ID_EX_readData2;
 	reg [`WORD_SIZE-1:0] ID_EX_sign_extended;
@@ -84,15 +84,17 @@ module data_path (
 
 
 	//** EX STAGE **//
-	wire opcode = ID_EX_signal[3:0];
+	wire [3:0] OP = ID_EX_signal[3:0];
+	wire isLHI = ID_EX_signal[12];
+	wire [3:0] opcode = ID_EX_ins[15:12];
 
 	//change!!
 	wire ALUSrc = ID_EX_signal[5];
 	wire [`WORD_SIZE-1:0] forwardA = ID_EX_readData1;
-	wire [`WORD_SIZE-1:0] A = forwardA;
+	wire [`WORD_SIZE-1:0] A = isLHI ? 0 : forwardA;
 	wire [`WORD_SIZE-1:0] forwardB = ID_EX_readData2;
 	wire [`WORD_SIZE-1:0] B = ALUSrc ? ID_EX_sign_extended : forwardB;
-	wire ALUOut;
+	wire [`WORD_SIZE-1:0] ALUOut;
 	ALU alu(A, B, OP, ALUOut, opcode, bcond);
 
 	wire RegDst = ID_EX_signal[11];
@@ -101,6 +103,20 @@ module data_path (
 	reg [`WORD_SIZE-1:0] EX_MEM_ALUout;
 	reg [1:0] EX_MEM_rd;
 	reg [`WORD_SIZE-1:0] EX_MEM_ins;
+	reg [`SIG_SIZE-1:0] EX_MEM_sig;
+	// ** EX STAGE END **//
+
+	//** MEM STAGE **//
+	wire MemRead = EX_MEM_sig[8];
+	wire MemWrite = EX_MEM_sig[6];
+	assign data2 = MemRead ? `WORD_SIZE-1'hz : (MemWrite ? EX_MEM_rt : 0);
+	assign readM2 = MemRead ? 1 : 0;
+	assign writeM2 = MemWrite ? 1 : 0;
+
+	assign address2 = EX_MEM_ALUout;
+
+
+
 
 
 	wire isJMP = signal[10];
@@ -141,11 +157,12 @@ module data_path (
 
 	// ** EX STAGE **//
 	always @ (posedge clk) begin
-		EX_MEM_rs = forwardA;
-		EX_MEM_rt = forwardB;
-		EX_MEM_rd = RegDst ? ID_EX_rd : ID_EX_rt;
-		EX_MEM_ALUout = ALUOut;
-		EX_MEM_ins = ID_EX_ins;
+		EX_MEM_rs <= forwardA;
+		EX_MEM_rt <= forwardB;
+		EX_MEM_rd <= RegDst ? ID_EX_rd : ID_EX_rt;
+		EX_MEM_ALUout <= ALUOut;
+		EX_MEM_ins <= ID_EX_ins;
+		EX_MEM_sig <= ID_EX_signal;
 	end
 
 

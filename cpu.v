@@ -36,7 +36,7 @@ module cpu(Clk, Reset_N, readM1, address1, data1, readM2, writeM2, address2, dat
 	wire [`WORD_SIZE-1:0] instruction;
 	reg [`WORD_SIZE-1:0] PC;
 	wire [`WORD_SIZE-1:0] nextPC;
-	wire [11:0] signal;
+	wire [`SIG_SIZE-1:0] signal;
 
 	//output port for wwd
 	assign output_port = output_reg;
