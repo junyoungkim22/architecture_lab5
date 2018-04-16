@@ -18,7 +18,8 @@ module data_path (
 	PC,
 	nextPC,
 	signal,
-	is_halted
+	is_halted,
+	num_inst
 );
 
 	input clk;
@@ -30,17 +31,21 @@ module data_path (
 	output [`WORD_SIZE-1:0] address2;
 	input [`WORD_SIZE-1:0] data1;
 	inout [`WORD_SIZE-1:0] data2;
-	output reg [`WORD_SIZE-1:0] output_reg;
+	output wire [`WORD_SIZE-1:0] output_reg;
 	output [`WORD_SIZE-1:0] instruction;
 	input [`WORD_SIZE-1:0] PC;
 	output [`WORD_SIZE-1:0] nextPC;
 	input [`SIG_SIZE-1:0] signal;
 	output is_halted;
+	output [`WORD_SIZE-1:0] num_inst;
 
 
 	assign readM1 = 1;
 
 	assign address1 = PC;
+	reg [`WORD_SIZE-1:0] num_inst_counter;
+
+	assign num_inst = num_inst_counter;
 
 	//change!
 	//assign address2 = 0;
@@ -77,7 +82,7 @@ module data_path (
 	wire [`WORD_SIZE-1:0] jmp_target = {PC[15:12], IF_ID_ins[11:0]};
 
 	//change!!
-	wire regFileWrite = 0; 
+	wire regFileWrite; 
 
 	register_file regFile (rs, rt, rd, writeData, regFileWrite, readData1, readData2, clk, reset_n);
 	//** ID STAGE END **//
@@ -112,10 +117,21 @@ module data_path (
 	assign data2 = MemRead ? `WORD_SIZE-1'hz : (MemWrite ? EX_MEM_rt : 0);
 	assign readM2 = MemRead ? 1 : 0;
 	assign writeM2 = MemWrite ? 1 : 0;
-
+	reg [`WORD_SIZE-1:0] MEM_WB_ins;
+	reg [`SIG_SIZE-1:0] MEM_WB_sig;
+	reg [`WORD_SIZE-1:0] MEM_WB_data;
+	reg [`WORD_SIZE-1:0] MEM_WB_ALUout;
+	reg [`WORD_SIZE-1:0] MEM_WB_rs;
+	reg [`WORD_SIZE-1:0] MEM_WB_rt;
+	reg [1:0] MEM_WB_rd;
 	assign address2 = EX_MEM_ALUout;
 
-
+	//** WB STAGE **//
+	wire MemtoReg = MEM_WB_sig[7];
+	wire RegWrite = MEM_WB_sig[4];
+	assign writeData = MemtoReg ? MEM_WB_data : MEM_WB_ALUout;
+	assign regFileWrite = RegWrite;
+	assign output_reg = MEM_WB_rs;
 
 
 
@@ -126,8 +142,9 @@ module data_path (
 	assign nextPC = isJMP ? jmp_target : PC + 1;
 
 	initial begin
-		IF_ID_ins <= 0;
+		IF_ID_ins <= `NOP;
 		IF_ID_nextPC <= 0;
+		num_inst_counter <= 0;
 	end
 
 
@@ -165,6 +182,23 @@ module data_path (
 		EX_MEM_sig <= ID_EX_signal;
 	end
 
+	// ** MEM STAGE **//
+	always @ (posedge clk) begin
+		MEM_WB_ins = EX_MEM_ins;
+		MEM_WB_sig = EX_MEM_sig;
+		MEM_WB_rs = EX_MEM_rs;
+		MEM_WB_rt = EX_MEM_rt;
+		MEM_WB_rd = EX_MEM_rd;
+		MEM_WB_ALUout = EX_MEM_ALUout;
+		MEM_WB_data = data2;
+	end
+
+	// ** WB STAGE **//
+	always @ (posedge clk) begin
+		if(MEM_WB_sig) num_inst_counter <= num_inst_counter + 1;
+	end
+
+	// ** WB STAGE END **//
 
 
 

@@ -10,7 +10,7 @@ module control_unit (instruction, signal);
 
 	initial
 	begin
-		signal = 0;
+		signal <= 0;
 	end
 
 	always @ (*)
@@ -27,6 +27,7 @@ module control_unit (instruction, signal);
 				`FUNC_NOT: signal = `SIG_SIZE'h0819;
 				`FUNC_TCP: signal = `SIG_SIZE'h081c;
 				`FUNC_AND: signal = `SIG_SIZE'h0815;
+				`FUNC_WWD: signal = `SIG_SIZE'h0001;
 			endcase
 		end
 		else

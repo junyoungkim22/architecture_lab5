@@ -56,7 +56,8 @@ module cpu(Clk, Reset_N, readM1, address1, data1, readM2, writeM2, address2, dat
 		PC,
 		nextPC,
 		signal,
-		is_halted
+		is_halted,
+		num_inst
 	);
 
 	control_unit CON (instruction, signal);
