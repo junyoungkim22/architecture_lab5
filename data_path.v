@@ -85,7 +85,23 @@ module data_path (
 
 	//** EX STAGE **//
 	wire opcode = ID_EX_signal[3:0];
+
+	//change!!
+	wire ALUSrc = ID_EX_signal[5];
+	wire [`WORD_SIZE-1:0] forwardA = ID_EX_readData1;
+	wire [`WORD_SIZE-1:0] A = forwardA;
+	wire [`WORD_SIZE-1:0] forwardB = ID_EX_readData2;
+	wire [`WORD_SIZE-1:0] B = ALUSrc ? ID_EX_sign_extended : forwardB;
+	wire ALUOut;
 	ALU alu(A, B, OP, ALUOut, opcode, bcond);
+
+	wire RegDst = ID_EX_signal[11];
+	reg [`WORD_SIZE-1:0] EX_MEM_rs;
+	reg [`WORD_SIZE-1:0] EX_MEM_rt;
+	reg [`WORD_SIZE-1:0] EX_MEM_ALUout;
+	reg [1:0] EX_MEM_rd;
+	reg [`WORD_SIZE-1:0] EX_MEM_ins;
+
 
 	wire isJMP = signal[10];
 	wire flush = isJMP;
@@ -94,22 +110,22 @@ module data_path (
 	assign nextPC = isJMP ? jmp_target : PC + 1;
 
 	initial begin
-		IF_ID_ins = 0;
-		IF_ID_nextPC = 0;
+		IF_ID_ins <= 0;
+		IF_ID_nextPC <= 0;
 	end
+
 
 	// ** IF STAGE ** //
 	always @ (posedge clk) begin
-		if(flush) IF_ID_ins = `NOP;
+		if(flush) IF_ID_ins <= `NOP;
 		else IF_ID_ins <= data1;
 		IF_ID_nextPC <= nextPC;
 	end
-
 	//** IF STAGE END **//
 
 
-	// ** ID STAGE ** //
 
+	// ** ID STAGE ** //
 	always @ (posedge clk) begin
 		ID_EX_ins <= IF_ID_ins;
 		ID_EX_signal <= signal;
@@ -120,11 +136,17 @@ module data_path (
 		ID_EX_rt <= rt;
 		ID_EX_rd <= rd;
 	end
-
 	// ** ID STAGE END **//
 
-	// ** EX STAGE **//
 
+	// ** EX STAGE **//
+	always @ (posedge clk) begin
+		EX_MEM_rs = forwardA;
+		EX_MEM_rt = forwardB;
+		EX_MEM_rd = RegDst ? ID_EX_rd : ID_EX_rt;
+		EX_MEM_ALUout = ALUOut;
+		EX_MEM_ins = ID_EX_ins;
+	end
 
 
 
