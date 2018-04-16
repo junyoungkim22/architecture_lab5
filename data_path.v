@@ -1,6 +1,7 @@
 `include "opcodes.v" 
 `include "alu.v"
 `include "register_file.v"
+`include "forwarding_unit.v"
 //`include "alu_control.v"	   
 
 module data_path (
@@ -63,7 +64,7 @@ module data_path (
 	wire [1:0] rt = IF_ID_ins[9:8];
 
 	//change!!
-	wire [1:0] rd = 0;
+	wire [1:0] rd;
 	//assign rd = (RegDst == 2) ? 2 : (RegDst ? instruction[7:6] :  instruction[9:8]);
 
 
@@ -95,9 +96,11 @@ module data_path (
 
 	//change!!
 	wire ALUSrc = ID_EX_signal[5];
-	wire [`WORD_SIZE-1:0] forwardA = ID_EX_readData1;
+	//wire [`WORD_SIZE-1:0] forwardA = ID_EX_readData1;
+	wire [`WORD_SIZE-1:0] forwardA;
 	wire [`WORD_SIZE-1:0] A = isLHI ? 0 : forwardA;
-	wire [`WORD_SIZE-1:0] forwardB = ID_EX_readData2;
+	wire [`WORD_SIZE-1:0] forwardB;
+	//wire [`WORD_SIZE-1:0] forwardB = ID_EX_readData2;
 	wire [`WORD_SIZE-1:0] B = ALUSrc ? ID_EX_sign_extended : forwardB;
 	wire [`WORD_SIZE-1:0] ALUOut;
 	ALU alu(A, B, OP, ALUOut, opcode, bcond);
@@ -132,9 +135,17 @@ module data_path (
 	assign writeData = MemtoReg ? MEM_WB_data : MEM_WB_ALUout;
 	assign regFileWrite = RegWrite;
 	assign output_reg = MEM_WB_rs;
+	assign rd = MEM_WB_rd;
+	//** WB STAGE END **//
 
 
+	wire [1:0] f_A;
+	wire [1:0] f_B;
 
+
+	forwarding_unit FOW (EX_MEM_sig[4], EX_MEM_rd, MEM_WB_sig[4], MEM_WB_rd, ID_EX_rs, ID_EX_rt, f_A, f_B);
+	assign forwardA = (f_A == 2'b10) ? EX_MEM_ALUout : ((f_A ==2'b01) ? writeData : ID_EX_readData1);
+	assign forwardB = (f_B == 2'b10) ? EX_MEM_ALUout : ((f_B == 2'b01) ? writeData : ID_EX_readData2);
 	wire isJMP = signal[10];
 	wire flush = isJMP;
 
@@ -167,7 +178,7 @@ module data_path (
 		ID_EX_sign_extended <= sign_extended;
 		ID_EX_rs <= rs;
 		ID_EX_rt <= rt;
-		ID_EX_rd <= rd;
+		ID_EX_rd <= IF_ID_ins[7:6];
 	end
 	// ** ID STAGE END **//
 
