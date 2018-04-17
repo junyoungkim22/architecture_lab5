@@ -82,6 +82,9 @@ module data_path (
 	wire [`WORD_SIZE-1:0] jmp_target = {PC[15:12], IF_ID_ins[11:0]};
 
 	//change!!
+	wire [`WORD_SIZE-1:0] br_target = IF_ID_nextPC + IF_ID_ins[7:0];
+
+	//change!!
 	wire regFileWrite; 
 
 	wire [`WORD_SIZE-1:0] forward_readData1 = readData1;
@@ -89,7 +92,7 @@ module data_path (
 
 	wire bcond;
 
-	br_resolve_unit BR_RES (forward_readData1, forward_readData2, ID_EX_ins, bcond);
+	br_resolve_unit BR_RES (forward_readData1, forward_readData2, IF_ID_ins, bcond);
 	register_file regFile (rs, rt, rd, writeData, regFileWrite, readData1, readData2, !clk, reset_n);
 	//** ID STAGE END **//
 
@@ -155,12 +158,13 @@ module data_path (
 	assign forwardA = (f_A == 2'b10) ? EX_MEM_ALUout : ((f_A ==2'b01) ? writeData : ID_EX_readData1);
 	assign forwardB = (f_B == 2'b10) ? EX_MEM_ALUout : ((f_B == 2'b01) ? writeData : ID_EX_readData2);
 	wire isJMP = signal[10];
-	wire flush = isJMP || (isBR && bcond);
+	wire flush = isJMP || (isBR);
 
 	hazard_detection_unit HAZ(ID_EX_signal[8], RegDst ? ID_EX_rd : ID_EX_rt, rs, rt, IF_ID_ins, stall);
 
 	//change!
-	assign nextPC = stall ? PC : ((isBR && bcond) ? jmp_target : (isJMP ? jmp_target : PC + 1));
+	assign nextPC = stall ? PC : ((isBR) ? (bcond ? br_target : PC) : (isJMP ? jmp_target : PC + 1));
+	assign is_halted = (ID_EX_signal[15:12] == 2);
 
 	initial begin
 		IF_ID_ins <= `NOP;

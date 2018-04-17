@@ -7,8 +7,8 @@ module br_resolve_unit (
 	bcond
 );
 
-	input [`WORD_SIZE-1:0] readData1;
-	input [`WORD_SIZE-1:0] readData2;
+	input signed [`WORD_SIZE-1:0] readData1;
+	input signed [`WORD_SIZE-1:0] readData2;
 	input [`WORD_SIZE-1:0] instruction;
 	output bcond;
 
@@ -22,5 +22,5 @@ module br_resolve_unit (
 	wire BGZ_taken = (opcode == `BGZ_OP && greater) ? 1 : 0;
 	wire BLZ_taken = (opcode == `BLZ_OP && less) ? 1 : 0;
 
-	assign bcond = (BNE_taken || BEQ_taken || BGZ_taken || BLZ_taken);
+	assign bcond = (BNE_taken || BEQ_taken || BGZ_taken || BLZ_taken) ? 1 : 0;
 endmodule					

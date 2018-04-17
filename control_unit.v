@@ -8,7 +8,7 @@ module control_unit (instruction, signal);
 	//              MemtoReg, MemWrite, ALUSrc, RegWrite
 	//              ALUOp(4 bits)
 
-	// ID : LHI : 0001
+	// ID : LHI : 0001  HLT : 0002
 
 	initial
 	begin
@@ -30,6 +30,7 @@ module control_unit (instruction, signal);
 				`FUNC_TCP: signal = `SIG_SIZE'h081c;
 				`FUNC_AND: signal = `SIG_SIZE'h0815;
 				`FUNC_WWD: signal = `SIG_SIZE'h0001;
+				`FUNC_HLT: signal = `SIG_SIZE'h2000;
 			endcase
 		end
 		else
@@ -40,6 +41,8 @@ module control_unit (instruction, signal);
 				`LWD_OP: signal = `SIG_SIZE'h01b0;
 				`BNE_OP: signal = `SIG_SIZE'h0201;
 				`BEQ_OP: signal = `SIG_SIZE'h0201;
+				`BGZ_OP: signal = `SIG_SIZE'h0201;
+				`BLZ_OP: signal = `SIG_SIZE'h0201;
 				`JMP_OP: signal = `SIG_SIZE'h0400;
 				`LHI_OP: signal = `SIG_SIZE'h103f;
 				`ORI_OP: signal = `SIG_SIZE'h0036;

@@ -23,7 +23,8 @@
 `define FUNC_SHL 6'd6
 `define FUNC_SHR 6'd7
 `define FUNC_WWD 6'd28
-`define FUNC_JRL 6'd26	 
+`define FUNC_JRL 6'd26
+`define FUNC_HLT 6'd29	 
 
 `define	WORD_SIZE	16			
 `define	NUM_REGS	4
