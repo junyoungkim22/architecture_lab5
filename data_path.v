@@ -86,7 +86,7 @@ module data_path (
 	//change!!
 	wire regFileWrite; 
 
-	register_file regFile (rs, rt, rd, writeData, regFileWrite, readData1, readData2, clk, reset_n);
+	register_file regFile (rs, rt, rd, writeData, regFileWrite, readData1, readData2, !clk, reset_n);
 	//** ID STAGE END **//
 
 
@@ -209,6 +209,7 @@ module data_path (
 		EX_MEM_ins <= ID_EX_ins;
 		EX_MEM_sig <= ID_EX_signal;
 	end
+	// ** EX STAGE END **//
 
 	// ** MEM STAGE **//
 	always @ (posedge clk) begin

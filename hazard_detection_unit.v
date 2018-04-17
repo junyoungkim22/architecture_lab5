@@ -15,6 +15,8 @@ module hazard_detection_unit (
 	input [`WORD_SIZE-1:0] IF_ID_ins;
 	output stall;
 
+	//implement cases where IF_ID rs rt are not used
+
 	assign stall = ID_EX_MemRead ? ((ID_EX_rd == IF_ID_rs || ID_EX_rd == IF_ID_rt) ? 1 : 0) : 0;
 
 endmodule					
