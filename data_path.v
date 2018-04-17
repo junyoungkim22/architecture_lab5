@@ -2,7 +2,8 @@
 `include "alu.v"
 `include "register_file.v"
 `include "forwarding_unit.v"
-`include "hazard_detection_unit.v"	   
+`include "hazard_detection_unit.v"
+`include "br_resolve_unit.v"	   
 
 module data_path (
 	clk,
@@ -63,11 +64,8 @@ module data_path (
 	wire [1:0] rs = IF_ID_ins[11:10];
 	wire [1:0] rt = IF_ID_ins[9:8];
 	wire stall;
-
-	//change!!
 	wire [1:0] rd;
-	//assign rd = (RegDst == 2) ? 2 : (RegDst ? instruction[7:6] :  instruction[9:8]);
-
+	wire isBR = signal[9];
 
 	wire [`WORD_SIZE-1:0] writeData;
 	wire [`WORD_SIZE-1:0] readData1;
@@ -86,6 +84,12 @@ module data_path (
 	//change!!
 	wire regFileWrite; 
 
+	wire [`WORD_SIZE-1:0] forward_readData1 = readData1;
+	wire [`WORD_SIZE-1:0] forward_readData2 = readData2;
+
+	wire bcond;
+
+	br_resolve_unit BR_RES (forward_readData1, forward_readData2, ID_EX_ins, bcond);
 	register_file regFile (rs, rt, rd, writeData, regFileWrite, readData1, readData2, !clk, reset_n);
 	//** ID STAGE END **//
 
@@ -104,7 +108,7 @@ module data_path (
 	//wire [`WORD_SIZE-1:0] forwardB = ID_EX_readData2;
 	wire [`WORD_SIZE-1:0] B = ALUSrc ? ID_EX_sign_extended : forwardB;
 	wire [`WORD_SIZE-1:0] ALUOut;
-	ALU alu(A, B, OP, ALUOut, opcode, bcond);
+	ALU alu(A, B, OP, ALUOut, opcode);
 
 	wire RegDst = ID_EX_signal[11];
 	reg [`WORD_SIZE-1:0] EX_MEM_rs;
@@ -151,12 +155,12 @@ module data_path (
 	assign forwardA = (f_A == 2'b10) ? EX_MEM_ALUout : ((f_A ==2'b01) ? writeData : ID_EX_readData1);
 	assign forwardB = (f_B == 2'b10) ? EX_MEM_ALUout : ((f_B == 2'b01) ? writeData : ID_EX_readData2);
 	wire isJMP = signal[10];
-	wire flush = isJMP;
+	wire flush = isJMP || (isBR && bcond);
 
 	hazard_detection_unit HAZ(ID_EX_signal[8], RegDst ? ID_EX_rd : ID_EX_rt, rs, rt, IF_ID_ins, stall);
 
 	//change!
-	assign nextPC = stall ? PC : (isJMP ? jmp_target : PC + 1);
+	assign nextPC = stall ? PC : ((isBR && bcond) ? jmp_target : (isJMP ? jmp_target : PC + 1));
 
 	initial begin
 		IF_ID_ins <= `NOP;

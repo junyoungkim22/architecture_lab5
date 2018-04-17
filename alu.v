@@ -1,37 +1,24 @@
 `include "opcodes.v"
 						 
-module ALU(A,B,OP,C, opcode, bcond);
+module ALU(A,B,OP,C, opcode);
 
 	input signed [`WORD_SIZE-1:0]A;
 	input signed [`WORD_SIZE-1:0]B;
 	input [3:0]OP;
 	output signed [`WORD_SIZE-1:0]C;					   
 	input [3:0] opcode;
-	output reg bcond;
+	//output reg bcond;
 
 	reg[15:0] C;
 	
 	initial begin
-		bcond = 0;
+		//bcond = 0;
 	end
 
 	always @ (A or B or OP) begin
-		bcond = 0;
 		if(OP == 4'b0000) begin C = A + B; end              //ADD
 		else if(OP == 4'b0001) begin                        //SUB
 			C = A - B;
-			if(opcode == `BNE_OP) begin
-				if(C != 0) bcond = 1;
-			end
-			if(opcode == `BEQ_OP) begin
-				if(C == 0) bcond = 1;
-			end
-			if(opcode == `BGZ_OP) begin
-				if(A > 0) bcond = 1;
-			end
-			if(opcode == `BLZ_OP) begin
-				if(A < 0) bcond = 1;
-			end
 		end
 		else if (OP == 4'b0010) begin C <= ~(A & B); end
 		else if (OP == 4'b0011) begin C <= ~(A | B); end
