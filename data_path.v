@@ -158,9 +158,9 @@ module data_path (
 	assign forwardA = (f_A == 2'b10) ? EX_MEM_ALUout : ((f_A ==2'b01) ? writeData : ID_EX_readData1);
 	assign forwardB = (f_B == 2'b10) ? EX_MEM_ALUout : ((f_B == 2'b01) ? writeData : ID_EX_readData2);
 	wire isJMP = signal[10];
-	wire flush = isJMP || (isBR);
+	wire flush = isJMP || isBR;
 
-	hazard_detection_unit HAZ(ID_EX_signal[8], RegDst ? ID_EX_rd : ID_EX_rt, rs, rt, IF_ID_ins, stall);
+	hazard_detection_unit HAZ(ID_EX_signal, RegDst ? ID_EX_rd : ID_EX_rt, rs, rt, signal, stall);
 
 	//change!
 	assign nextPC = stall ? PC : ((isBR) ? (bcond ? br_target : PC) : (isJMP ? jmp_target : PC + 1));
@@ -178,7 +178,7 @@ module data_path (
 
 	// ** IF STAGE ** //
 	always @ (posedge clk) begin
-		if(flush) IF_ID_ins <= `NOP;
+		if(flush && !stall) IF_ID_ins <= `NOP;
 		if (!stall && !flush) begin 
 			IF_ID_ins <= data1;
 			IF_ID_nextPC <= nextPC;

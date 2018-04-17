@@ -8,7 +8,7 @@ module control_unit (instruction, signal);
 	//              MemtoReg, MemWrite, ALUSrc, RegWrite
 	//              ALUOp(4 bits)
 
-	// ID : LHI : 0001  HLT : 0002
+	// ID : LHI : 1  HLT : 2  JPR : 3   JAL : 4
 
 	initial
 	begin
