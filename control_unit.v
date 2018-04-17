@@ -3,10 +3,12 @@
 module control_unit (instruction, signal);
 	input [`WORD_SIZE-1:0] instruction;
 	output reg [`SIG_SIZE-1:0] signal;
-	//signal order : x, x, x, isLHI
+	//signal order : ID (4 bits)
 	//	   			RegDst, Jump, Branch, MemRead
 	//              MemtoReg, MemWrite, ALUSrc, RegWrite
 	//              ALUOp(4 bits)
+
+	// ID : LHI : 0001
 
 	initial
 	begin
@@ -35,7 +37,7 @@ module control_unit (instruction, signal);
 			case(instruction[15:12])
 				`ADI_OP: signal = `SIG_SIZE'h0030;
 				`SWD_OP: signal = `SIG_SIZE'h0060;
-				`LWD_OP: signal = `SIG_SIZE'h0960;
+				`LWD_OP: signal = `SIG_SIZE'h01b0;
 				`BNE_OP: signal = `SIG_SIZE'h0201;
 				`BEQ_OP: signal = `SIG_SIZE'h0201;
 				`JMP_OP: signal = `SIG_SIZE'h0400;
