@@ -31,6 +31,7 @@ module control_unit (instruction, signal);
 				`FUNC_AND: signal = `SIG_SIZE'h0815;
 				`FUNC_WWD: signal = `SIG_SIZE'h0001;
 				`FUNC_HLT: signal = `SIG_SIZE'h2000;
+				`FUNC_JPR: signal = `SIG_SIZE'h3400;
 			endcase
 		end
 		else

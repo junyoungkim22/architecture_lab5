@@ -62,8 +62,10 @@ module data_path (
 
 	//** ID STAGE **//
 	assign instruction = IF_ID_ins;
+	wire IF_ID_isJAL = signal[15:12] == 4;
+	wire IF_ID_isJPR = signal[15:12] == 3;
 	wire [1:0] rs = IF_ID_ins[11:10];
-	wire [1:0] rt = (signal[15:12] == 4) ? 2 : IF_ID_ins[9:8];
+	wire [1:0] rt = (IF_ID_isJAL) ? 2 : IF_ID_ins[9:8];
 	wire stall;
 	wire [1:0] rd;
 	wire isBR = signal[9];
@@ -80,22 +82,19 @@ module data_path (
 	reg [1:0] ID_EX_rt;
 	reg [1:0] ID_EX_rd;
 	reg [`WORD_SIZE-1:0] ID_EX_nextPC;   //used for JAL
+
+	wire [`WORD_SIZE-1:0] forward_readData1;
+	wire [`WORD_SIZE-1:0] forward_readData2;
+	wire [1:0] ID_f_A;
+	wire [1:0] ID_f_B;
+	
 	wire [`WORD_SIZE-1:0] sign_extended = { {8{IF_ID_ins[7]}}, IF_ID_ins[7:0] };
-	wire [`WORD_SIZE-1:0] jmp_target = {PC[15:12], IF_ID_ins[11:0]};
+	wire [`WORD_SIZE-1:0] jmp_target = IF_ID_isJPR ? forward_readData1 : {PC[15:12], IF_ID_ins[11:0]};
 
 	//change!!
 	wire [`WORD_SIZE-1:0] br_target = IF_ID_nextPC + IF_ID_ins[7:0];
 
-	//change!!
 	wire regFileWrite; 
-
-	//wire [`WORD_SIZE-1:0] forward_readData1 = readData1;
-	//wire [`WORD_SIZE-1:0] forward_readData2 = readData2;
-	wire [`WORD_SIZE-1:0] forward_readData1;
-	wire [`WORD_SIZE-1:0] forward_readData2;
-	wire ID_f_A;
-	wire ID_f_B;
-
 	wire bcond;
 
 	br_resolve_unit BR_RES (forward_readData1, forward_readData2, IF_ID_ins, bcond);
@@ -106,7 +105,7 @@ module data_path (
 	//** EX STAGE **//
 	wire [3:0] OP = ID_EX_signal[3:0];
 	wire [3:0] isLHI = ID_EX_signal[15:12] == 1;
-	wire [3:0] isJAL = ID_EX_signal[15:12] == 4;
+	wire [3:0] ID_EX_isJAL = ID_EX_signal[15:12] == 4;
 	wire [3:0] opcode = ID_EX_ins[15:12];
 
 	//change!!
@@ -224,7 +223,7 @@ module data_path (
 		EX_MEM_rs <= forwardA;
 		EX_MEM_rt <= forwardB;
 		EX_MEM_rd <= RegDst ? ID_EX_rd : ID_EX_rt;
-		EX_MEM_ALUout <= isJAL ? ID_EX_nextPC : ALUOut;
+		EX_MEM_ALUout <= ID_EX_isJAL ? ID_EX_nextPC : ALUOut;
 		EX_MEM_ins <= ID_EX_ins;
 		EX_MEM_sig <= ID_EX_signal;
 	end
