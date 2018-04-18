@@ -3,7 +3,8 @@
 `include "register_file.v"
 `include "forwarding_unit.v"
 `include "hazard_detection_unit.v"
-`include "br_resolve_unit.v"	   
+`include "br_resolve_unit.v"
+`include "ID_forwarding_unit.v"   
 
 module data_path (
 	clk,
@@ -87,8 +88,12 @@ module data_path (
 	//change!!
 	wire regFileWrite; 
 
-	wire [`WORD_SIZE-1:0] forward_readData1 = readData1;
-	wire [`WORD_SIZE-1:0] forward_readData2 = readData2;
+	//wire [`WORD_SIZE-1:0] forward_readData1 = readData1;
+	//wire [`WORD_SIZE-1:0] forward_readData2 = readData2;
+	wire [`WORD_SIZE-1:0] forward_readData1;
+	wire [`WORD_SIZE-1:0] forward_readData2;
+	wire ID_f_A;
+	wire ID_f_B;
 
 	wire bcond;
 
@@ -155,12 +160,15 @@ module data_path (
 
 
 	forwarding_unit FOW (EX_MEM_sig[4], EX_MEM_rd, MEM_WB_sig[4], MEM_WB_rd, ID_EX_rs, ID_EX_rt, f_A, f_B);
-	assign forwardA = (f_A == 2'b10) ? EX_MEM_ALUout : ((f_A ==2'b01) ? writeData : ID_EX_readData1);
+	ID_forwarding_unit ID_FOW (EX_MEM_sig[4], EX_MEM_rd, MEM_WB_sig[4], MEM_WB_rd, rs, rt, ID_f_A, ID_f_B);
+	assign forwardA = (f_A == 2'b10) ? EX_MEM_ALUout : ((f_A == 2'b01) ? writeData : ID_EX_readData1);
 	assign forwardB = (f_B == 2'b10) ? EX_MEM_ALUout : ((f_B == 2'b01) ? writeData : ID_EX_readData2);
+	assign forward_readData1 = (ID_f_A == 2'b10) ? EX_MEM_ALUout : ((ID_f_A == 2'b01) ? writeData : readData1);
+	assign forward_readData2 = (ID_f_B == 2'b10) ? EX_MEM_ALUout : ((ID_f_B == 2'b01) ? writeData : readData2);
 	wire isJMP = signal[10];
 	wire flush = isJMP || isBR;
 
-	hazard_detection_unit HAZ(ID_EX_signal, RegDst ? ID_EX_rd : ID_EX_rt, rs, rt, signal, stall);
+	hazard_detection_unit HAZ(ID_EX_signal, RegDst ? ID_EX_rd : ID_EX_rt, EX_MEM_sig, EX_MEM_rd, rs, rt, signal, stall);
 
 	//change!
 	assign nextPC = stall ? PC : ((isBR) ? (bcond ? br_target : PC) : (isJMP ? jmp_target : PC + 1));
