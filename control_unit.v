@@ -8,7 +8,7 @@ module control_unit (instruction, signal);
 	//              MemtoReg, MemWrite, ALUSrc, RegWrite
 	//              ALUOp(4 bits)
 
-	// ID : LHI : 1  HLT : 2  JPR : 3   JAL : 4
+	// ID : LHI : 1  HLT : 2  JPR : 3   JAL : 4  JRL : 5
 
 	initial
 	begin
@@ -32,6 +32,7 @@ module control_unit (instruction, signal);
 				`FUNC_WWD: signal = `SIG_SIZE'h0001;
 				`FUNC_HLT: signal = `SIG_SIZE'h2000;
 				`FUNC_JPR: signal = `SIG_SIZE'h3400;
+				`FUNC_JRL: signal = `SIG_SIZE'h5410;
 			endcase
 		end
 		else
