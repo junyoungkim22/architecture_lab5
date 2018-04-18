@@ -46,6 +46,7 @@ module control_unit (instruction, signal);
 				`JMP_OP: signal = `SIG_SIZE'h0400;
 				`LHI_OP: signal = `SIG_SIZE'h103f;
 				`ORI_OP: signal = `SIG_SIZE'h0036;
+				`JAL_OP: signal = `SIG_SIZE'h4410;
 			endcase
 		end
 	end
