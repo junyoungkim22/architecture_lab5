@@ -50,11 +50,6 @@ module data_path (
 
 	assign num_inst = num_inst_counter;
 
-	//change!
-	//assign address2 = 0;
-	//assign writeM2 = 0;
-
-
 	//** IF STAGE **//
 	reg [`WORD_SIZE-1:0] IF_ID_ins;
 	reg [`WORD_SIZE-1:0] IF_ID_nextPC;
@@ -92,7 +87,6 @@ module data_path (
 	wire [`WORD_SIZE-1:0] sign_extended = { {8{IF_ID_ins[7]}}, IF_ID_ins[7:0] };
 	wire [`WORD_SIZE-1:0] jmp_target = (IF_ID_isJRL || IF_ID_isJPR) ? forward_readData1 : {PC[15:12], IF_ID_ins[11:0]};
 
-	//change!!
 	wire [`WORD_SIZE-1:0] br_target = IF_ID_nextPC + IF_ID_ins[7:0];
 
 	wire regFileWrite;
@@ -110,13 +104,10 @@ module data_path (
 	wire [3:0] ID_EX_isJRL = ID_EX_signal[15:12] == 5;
 	wire [3:0] opcode = ID_EX_ins[15:12];
 
-	//change!!
 	wire ALUSrc = ID_EX_signal[5];
-	//wire [`WORD_SIZE-1:0] forwardA = ID_EX_readData1;
 	wire [`WORD_SIZE-1:0] forwardA;
 	wire [`WORD_SIZE-1:0] A = (isLHI == 4'b0001) ? 0 : forwardA;
 	wire [`WORD_SIZE-1:0] forwardB;
-	//wire [`WORD_SIZE-1:0] forwardB = ID_EX_readData2;
 	wire [`WORD_SIZE-1:0] B = ALUSrc ? ID_EX_sign_extended : forwardB;
 	wire [`WORD_SIZE-1:0] ALUOut;
 	ALU alu(A, B, OP, ALUOut, opcode);
@@ -152,7 +143,6 @@ module data_path (
 	reg [`WORD_SIZE-1:0] WWD_output;
 	assign writeData = MemtoReg ? MEM_WB_data : MEM_WB_ALUout;
 	assign regFileWrite = RegWrite;
-	//assign output_reg = MEM_WB_rs;
 	assign output_reg = WWD_output;
 	assign rd = MEM_WB_rd;
 	//** WB STAGE END **//
@@ -173,7 +163,6 @@ module data_path (
 
 	hazard_detection_unit HAZ(ID_EX_signal, RegDst ? ID_EX_rd : ID_EX_rt, EX_MEM_sig, EX_MEM_rd, rs, rt, signal, stall);
 
-	//change!
 	assign nextPC = stall ? PC : ((isBR) ? (bcond ? br_target : PC) : (isJMP ? jmp_target : PC + 1));
 	assign is_halted = (MEM_WB_sig[15:12] == 2);
 
@@ -189,10 +178,20 @@ module data_path (
 
 	// ** IF STAGE ** //
 	always @ (posedge clk) begin
-		if(flush && !stall) IF_ID_ins <= `NOP;
-		if (!stall && !flush) begin 
-			IF_ID_ins <= data1;
-			IF_ID_nextPC <= nextPC;
+		if(!reset_n) begin
+			IF_ID_ins <= `NOP;
+			IF_ID_nextPC <= 0;
+			num_inst_counter <= 0;
+			IF_ID_ins <= `NOP;
+			ID_EX_ins <= `NOP;
+			ID_EX_signal <= `SIG_SIZE'b0;
+		end
+		else begin
+			if(flush && !stall) IF_ID_ins <= `NOP;
+			if (!stall && !flush) begin 
+				IF_ID_ins <= data1;
+				IF_ID_nextPC <= nextPC;
+			end
 		end
 	end
 	//** IF STAGE END **//
@@ -201,20 +200,22 @@ module data_path (
 
 	// ** ID STAGE ** //
 	always @ (posedge clk) begin
-		if(!stall) begin
-			ID_EX_ins <= IF_ID_ins;
-			ID_EX_signal <= signal;
-			ID_EX_readData1 <= readData1;
-			ID_EX_readData2 <= readData2;
-			ID_EX_sign_extended <= sign_extended;
-			ID_EX_rs <= rs;
-			ID_EX_rt <= rt;
-			ID_EX_rd <= IF_ID_ins[7:6];
-			ID_EX_nextPC <= IF_ID_nextPC;
-		end
-		if(stall) begin
-			ID_EX_ins <= `NOP;
-			ID_EX_signal <= `SIG_SIZE'b0;
+		if(reset_n) begin
+			if(!stall) begin
+				ID_EX_ins <= IF_ID_ins;
+				ID_EX_signal <= signal;
+				ID_EX_readData1 <= readData1;
+				ID_EX_readData2 <= readData2;
+				ID_EX_sign_extended <= sign_extended;
+				ID_EX_rs <= rs;
+				ID_EX_rt <= rt;
+				ID_EX_rd <= IF_ID_ins[7:6];
+				ID_EX_nextPC <= IF_ID_nextPC;
+			end
+			if(stall) begin
+				ID_EX_ins <= `NOP;
+				ID_EX_signal <= `SIG_SIZE'b0;
+			end
 		end
 	end
 	// ** ID STAGE END **//

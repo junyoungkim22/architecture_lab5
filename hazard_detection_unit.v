@@ -35,8 +35,5 @@ module hazard_detection_unit (
 	assign stall = br_jmp_stall || br_jmp_mem_stall || alu_stall;
 
 	//implement cases where IF_ID rs rt are not used
-
-	//assign stall = isNOP ? 0 : ((ID_EX_MemRead || IF_ID_isBR || IF_ID_isJPR) ? ((ID_EX_rd == IF_ID_rs || ID_EX_rd == IF_ID_rt) ? 1 : 0) : 0);
-
 endmodule					
 
