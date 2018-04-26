@@ -94,6 +94,7 @@ module data_path (
 
 	br_resolve_unit BR_RES (forward_readData1, forward_readData2, IF_ID_ins, bcond);
 	register_file regFile (rs, rt, rd, writeData, regFileWrite, readData1, readData2, !clk, reset_n);
+
 	//** ID STAGE END **//
 
 
@@ -151,6 +152,13 @@ module data_path (
 	wire [1:0] f_A;
 	wire [1:0] f_B;
 
+	wire isJMP = signal[10];
+// branch prediction
+	wire prediction_fail = (isBR && bcond && (PC != br_target)) || ((isJMP)  && (PC != jmp_target));
+	//wire prediction_fail = isBR || isJMP;
+	wire flush = prediction_fail;
+	wire prev_flush = isJMP || isBR;
+	/* -- */
 
 	forwarding_unit FOW (EX_MEM_sig[4], EX_MEM_rd, MEM_WB_sig[4], MEM_WB_rd, ID_EX_rs, ID_EX_rt, f_A, f_B);
 	ID_forwarding_unit ID_FOW (EX_MEM_sig[4], EX_MEM_rd, MEM_WB_sig[4], MEM_WB_rd, rs, rt, ID_f_A, ID_f_B);
@@ -158,13 +166,19 @@ module data_path (
 	assign forwardB = (f_B == 2'b10) ? EX_MEM_ALUout : ((f_B == 2'b01) ? writeData : ID_EX_readData2);
 	assign forward_readData1 = (ID_f_A == 2'b10) ? EX_MEM_ALUout : ((ID_f_A == 2'b01) ? writeData : readData1);
 	assign forward_readData2 = (ID_f_B == 2'b10) ? EX_MEM_ALUout : ((ID_f_B == 2'b01) ? writeData : readData2);
-	wire isJMP = signal[10];
-	wire flush = isJMP || isBR;
+	
 
 	hazard_detection_unit HAZ(ID_EX_signal, RegDst ? ID_EX_rd : ID_EX_rt, EX_MEM_sig, EX_MEM_rd, rs, rt, signal, stall);
+	//assign nextPC = stall ? PC : ((isBR) ? (bcond ? br_target : PC) : (isJMP ? jmp_target : PC + 1));
+	//assign nextPC = stall ? PC : ((isBR) ? (bcond ? br_target : PC) : (isJMP && (PC != jmp_target) ? jmp_target : PC + 1));
+	assign nextPC = stall ? PC : ( (isBR && (PC!=br_target)) ? (bcond ? br_target : (PC + 1)) : ( isJMP && (PC != jmp_target) ? jmp_target : PC + 1));
 
-	assign nextPC = stall ? PC : ((isBR) ? (bcond ? br_target : PC) : (isJMP ? jmp_target : PC + 1));
 	assign is_halted = (MEM_WB_sig[15:12] == 2);
+
+
+	
+
+
 
 	initial begin
 		IF_ID_ins <= `NOP;
