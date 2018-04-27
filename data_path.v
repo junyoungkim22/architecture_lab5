@@ -159,12 +159,22 @@ module data_path (
 	assign forward_readData1 = (ID_f_A == 2'b10) ? EX_MEM_ALUout : ((ID_f_A == 2'b01) ? writeData : readData1);
 	assign forward_readData2 = (ID_f_B == 2'b10) ? EX_MEM_ALUout : ((ID_f_B == 2'b01) ? writeData : readData2);
 	wire isJMP = signal[10];
-	wire flush = isJMP || isBR;
+	//wire flush = isJMP || isBR;
 
 	hazard_detection_unit HAZ(ID_EX_signal, RegDst ? ID_EX_rd : ID_EX_rt, EX_MEM_sig, EX_MEM_rd, rs, rt, signal, stall);
 
-	assign nextPC = stall ? PC : ((isBR) ? (bcond ? br_target : PC) : (isJMP ? jmp_target : PC + 1));
+	//assign nextPC = stall ? PC : ((isBR) ? (bcond ? br_target : PC) : (isJMP ? jmp_target : PC + 1));
 	assign is_halted = (MEM_WB_sig[15:12] == 2);
+
+
+	//branch prediction
+	wire take = 0;  //whether to take branch or not
+	wire prediction_fail = isBR ? (take ? !bcond : bcond) : 0;
+	wire flush = isJMP || prediction_fail;
+	assign nextPC = stall ? PC : ((isBR) ? (!prediction_fail ? PC + 1 : (bcond ? br_target : PC)) : (isJMP ? jmp_target : PC + 1));
+
+
+	//branch prediction
 
 	initial begin
 		IF_ID_ins <= `NOP;
