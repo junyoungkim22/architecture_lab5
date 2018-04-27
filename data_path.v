@@ -170,20 +170,21 @@ module data_path (
 	assign is_halted = (MEM_WB_sig[15:12] == 2);
 
 
-	//branch prediction
+	/* Branch Prediction Section */
 	wire [`WORD_SIZE-1:0] btb_result;
 	//wire take = 0;  //whether to take branch or not
 	//wire take = 1;
 	wire take;
-
-	btb BTB(PC, IF_ID_PC, btb_result, br_target, isBR, clk, reset_n);
-	sat_counter SAT(bcond, isBR && !stall, take, clk, reset_n);
-	wire prediction_fail = isBR ? (bcond ? PC != br_target : PC != IF_ID_PC + 1) : 0;
-	wire flush = isJMP || prediction_fail;
+	wire target = isBR ? br_target : (isJMP ? jmp_target : jmp_target);
+	
+	btb BTB(PC, IF_ID_PC, btb_result, target, isBR || isJMP, clk, reset_n);
+	sat_counter SAT(bcond, (isBR) && !stall, take, clk, reset_n);
+	wire prediction_fail = isBR ? (bcond ? PC != br_target : PC != IF_ID_PC + 1) : (isJMP ? PC!=jmp_target : 0);
+	wire flush = prediction_fail;
 	wire [`WORD_SIZE-1:0] right_br_target = bcond ? br_target : IF_ID_PC + 1;
-	wire [`WORD_SIZE-1:0] predict_PC = take ? btb_result : PC + 1;
-	//assign nextPC = stall ? PC : ((isBR) ? (!prediction_fail ? PC + 1 : right_br_target) : (isJMP ? jmp_target : PC + 1));
-	assign nextPC = stall ? PC : ((isBR) ? (!prediction_fail ? predict_PC : right_br_target) : (isJMP ? jmp_target : predict_PC));
+	wire [`WORD_SIZE-1:0] predict_PC = isJMP ? btb_result : ((take && isBR) ? btb_result : PC + 1);
+
+	assign nextPC = stall ? PC : ((isBR) ? (!prediction_fail ? predict_PC : right_br_target) : (isJMP ? (!prediction_fail ? predict_PC : jmp_target) : predict_PC));
 
 
 	//branch prediction
