@@ -53,6 +53,7 @@ module data_path (
 	//** IF STAGE **//
 	reg [`WORD_SIZE-1:0] IF_ID_ins;
 	reg [`WORD_SIZE-1:0] IF_ID_nextPC;
+	reg [`WORD_SIZE-1:0] IF_ID_PC;
 	//** IF STAGE **//
 
 	//** ID STAGE **//
@@ -169,7 +170,7 @@ module data_path (
 
 	//branch prediction
 	wire take = 0;  //whether to take branch or not
-	wire prediction_fail = isBR ? (take ? !bcond : bcond) : 0;
+	wire prediction_fail = isBR ? (bcond ? PC != br_target : PC != IF_ID_PC + 1) : 0;
 	wire flush = isJMP || prediction_fail;
 	assign nextPC = stall ? PC : ((isBR) ? (!prediction_fail ? PC + 1 : (bcond ? br_target : PC)) : (isJMP ? jmp_target : PC + 1));
 
@@ -201,6 +202,7 @@ module data_path (
 			if (!stall && !flush) begin 
 				IF_ID_ins <= data1;
 				IF_ID_nextPC <= nextPC;
+				IF_ID_PC <= PC;
 			end
 		end
 	end
