@@ -6,6 +6,7 @@
 `include "br_resolve_unit.v"
 `include "ID_forwarding_unit.v"
 `include "btb.v"   
+`include "sat_counter.v"
 
 module data_path (
 	clk,
@@ -171,9 +172,12 @@ module data_path (
 
 	//branch prediction
 	wire [`WORD_SIZE-1:0] btb_result;
-	btb BTB(PC, IF_ID_PC, btb_result, br_target, isBR, clk, reset_n);
 	//wire take = 0;  //whether to take branch or not
-	wire take = 1;
+	//wire take = 1;
+	wire take;
+
+	btb BTB(PC, IF_ID_PC, btb_result, br_target, isBR, clk, reset_n);
+	sat_counter SAT(bcond, isBR && !stall, take, clk, reset_n);
 	wire prediction_fail = isBR ? (bcond ? PC != br_target : PC != IF_ID_PC + 1) : 0;
 	wire flush = isJMP || prediction_fail;
 	wire [`WORD_SIZE-1:0] right_br_target = bcond ? br_target : IF_ID_PC + 1;
