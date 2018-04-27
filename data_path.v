@@ -4,7 +4,8 @@
 `include "forwarding_unit.v"
 `include "hazard_detection_unit.v"
 `include "br_resolve_unit.v"
-`include "ID_forwarding_unit.v"   
+`include "ID_forwarding_unit.v"
+`include "btb.v"   
 
 module data_path (
 	clk,
@@ -88,7 +89,7 @@ module data_path (
 	wire [`WORD_SIZE-1:0] sign_extended = { {8{IF_ID_ins[7]}}, IF_ID_ins[7:0] };
 	wire [`WORD_SIZE-1:0] jmp_target = (IF_ID_isJRL || IF_ID_isJPR) ? forward_readData1 : {PC[15:12], IF_ID_ins[11:0]};
 
-	wire [`WORD_SIZE-1:0] br_target = IF_ID_nextPC + IF_ID_ins[7:0];
+	wire [`WORD_SIZE-1:0] br_target = IF_ID_PC + IF_ID_ins[7:0] + 1;
 
 	wire regFileWrite;
 	wire bcond;
@@ -169,10 +170,16 @@ module data_path (
 
 
 	//branch prediction
-	wire take = 0;  //whether to take branch or not
+	wire [`WORD_SIZE-1:0] btb_result;
+	btb BTB(PC, IF_ID_PC, btb_result, br_target, isBR, clk, reset_n);
+	//wire take = 0;  //whether to take branch or not
+	wire take = 1;
 	wire prediction_fail = isBR ? (bcond ? PC != br_target : PC != IF_ID_PC + 1) : 0;
 	wire flush = isJMP || prediction_fail;
-	assign nextPC = stall ? PC : ((isBR) ? (!prediction_fail ? PC + 1 : (bcond ? br_target : PC)) : (isJMP ? jmp_target : PC + 1));
+	wire [`WORD_SIZE-1:0] right_br_target = bcond ? br_target : IF_ID_PC + 1;
+	wire [`WORD_SIZE-1:0] predict_PC = take ? btb_result : PC + 1;
+	//assign nextPC = stall ? PC : ((isBR) ? (!prediction_fail ? PC + 1 : right_br_target) : (isJMP ? jmp_target : PC + 1));
+	assign nextPC = stall ? PC : ((isBR) ? (!prediction_fail ? predict_PC : right_br_target) : (isJMP ? jmp_target : predict_PC));
 
 
 	//branch prediction
