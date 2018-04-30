@@ -28,12 +28,12 @@ module hazard_detection_unit (
 	wire EX_MEM_isNOP = (!EX_MEM_signal);
 	wire EX_MEM_MemRead = EX_MEM_signal[8];
 
+	// Stall when data hazard is detected
 	wire br_jmp_stall = ID_EX_isNOP ? 0 : ((IF_ID_isBR || IF_ID_isRegJMP) ? ((ID_EX_rd == IF_ID_rs || ID_EX_rd == IF_ID_rt) ? 1 : 0) : 0);
 	wire br_jmp_mem_stall = EX_MEM_isNOP ? 0 : (((IF_ID_isBR || IF_ID_isRegJMP) && EX_MEM_MemRead) ? ((EX_MEM_rd == IF_ID_rs || EX_MEM_rd == IF_ID_rt) ? 1 : 0) : 0);
 	wire alu_stall = ID_EX_isNOP ? 0 : (ID_EX_MemRead ? ((ID_EX_rd == IF_ID_rs || ID_EX_rd == IF_ID_rt) ? 1 : 0) : 0);
 
 	assign stall = br_jmp_stall || br_jmp_mem_stall || alu_stall;
 
-	//implement cases where IF_ID rs rt are not used
 endmodule					
 

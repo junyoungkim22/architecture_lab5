@@ -30,7 +30,6 @@ module cpu(Clk, Reset_N, readM1, address1, data1, readM2, writeM2, address2, dat
 	wire [`WORD_SIZE-1:0] output_port;
 	output is_halted;
 	wire is_halted;
-	// TODO : Implement your pipelined CPU!
 
 	wire [`WORD_SIZE-1:0] output_reg;
 	wire [`WORD_SIZE-1:0] instruction;
@@ -41,6 +40,7 @@ module cpu(Clk, Reset_N, readM1, address1, data1, readM2, writeM2, address2, dat
 	//output port for wwd
 	assign output_port = output_reg;
 
+	// Set up the data_path and control_unit 
 	data_path DP (
 		Clk, 
 		Reset_N,
@@ -69,6 +69,7 @@ module cpu(Clk, Reset_N, readM1, address1, data1, readM2, writeM2, address2, dat
 		PC <= 0;
 	end
 
+	// Change the PC value on each clock cycle
 	always @ (posedge Clk) begin
 		if(!Reset_N) begin
 			PC <= 0;

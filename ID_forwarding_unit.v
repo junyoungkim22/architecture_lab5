@@ -25,6 +25,8 @@ module ID_forwarding_unit (
 	wire MEM_rs_hazard;
 	wire MEM_rt_hazard;
 
+	// Detect when forward should be needed 
+	
 	assign EX_rs_hazard = (EX_MEM_RegWrite && (EX_MEM_rd == IF_ID_rs));
 	assign EX_rt_hazard = (EX_MEM_RegWrite && (EX_MEM_rd == IF_ID_rt));
 	assign MEM_rs_hazard = (MEM_WB_RegWrite && (MEM_WB_rd == IF_ID_rs)) && (!EX_rs_hazard);

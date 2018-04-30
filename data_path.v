@@ -27,6 +27,7 @@ module data_path (
 	num_inst
 );
 
+	/* Input / Output Declaration */
 	input clk;
 	input reset_n;
 	output readM1;
@@ -45,6 +46,7 @@ module data_path (
 	output [`WORD_SIZE-1:0] num_inst;
 
 
+	//always read instruction
 	assign readM1 = 1;
 
 	assign address1 = PC;
@@ -80,12 +82,12 @@ module data_path (
 	reg [1:0] ID_EX_rs;
 	reg [1:0] ID_EX_rt;
 	reg [1:0] ID_EX_rd;
-	reg [`WORD_SIZE-1:0] ID_EX_nextPC;   //used for JAL
+	reg [`WORD_SIZE-1:0] ID_EX_nextPC;   		//used for JAL
 
-	wire [`WORD_SIZE-1:0] forward_readData1;
-	wire [`WORD_SIZE-1:0] forward_readData2;
-	wire [1:0] ID_f_A;
-	wire [1:0] ID_f_B;
+	wire [`WORD_SIZE-1:0] forward_readData1;    //forwarded rs
+	wire [`WORD_SIZE-1:0] forward_readData2;    //forwarded rt
+	wire [1:0] ID_f_A;                          //choose which value to forward
+	wire [1:0] ID_f_B;                          //choose which value to forward
 
 	wire [`WORD_SIZE-1:0] sign_extended = { {8{IF_ID_ins[7]}}, IF_ID_ins[7:0] };
 	wire [`WORD_SIZE-1:0] jmp_target = (IF_ID_isJRL || IF_ID_isJPR) ? forward_readData1 : {PC[15:12], IF_ID_ins[11:0]};
@@ -95,12 +97,14 @@ module data_path (
 	wire regFileWrite;
 	wire bcond;
 
+	/* Set up br_resolve unit and register_file */
 	br_resolve_unit BR_RES (forward_readData1, forward_readData2, IF_ID_ins, bcond);
 	register_file regFile (rs, rt, rd, writeData, regFileWrite, readData1, readData2, !clk, reset_n);
+	
 	//** ID STAGE END **//
 
-
 	//** EX STAGE **//
+	
 	wire [3:0] OP = ID_EX_signal[3:0];
 	wire [3:0] isLHI = ID_EX_signal[15:12] == 1;
 	wire [3:0] ID_EX_isJAL = ID_EX_signal[15:12] == 4;
@@ -109,7 +113,7 @@ module data_path (
 
 	wire ALUSrc = ID_EX_signal[5];
 	wire [`WORD_SIZE-1:0] forwardA;
-	wire [`WORD_SIZE-1:0] A = (isLHI == 4'b0001) ? 0 : forwardA;
+	wire [`WORD_SIZE-1:0] A = (isLHI == 4'b0001) ? 0 : forwardA;        //if instruction is an LHI, input to ALU is 0
 	wire [`WORD_SIZE-1:0] forwardB;
 	wire [`WORD_SIZE-1:0] B = ALUSrc ? ID_EX_sign_extended : forwardB;
 	wire [`WORD_SIZE-1:0] ALUOut;
@@ -122,9 +126,11 @@ module data_path (
 	reg [1:0] EX_MEM_rd;
 	reg [`WORD_SIZE-1:0] EX_MEM_ins;
 	reg [`SIG_SIZE-1:0] EX_MEM_sig;
+	
 	// ** EX STAGE END **//
 
 	//** MEM STAGE **//
+	
 	wire MemRead = EX_MEM_sig[8];
 	wire MemWrite = EX_MEM_sig[6];
 	assign data2 = MemRead ? `WORD_SIZE'bz : (MemWrite ? EX_MEM_rt : 0);
@@ -138,9 +144,11 @@ module data_path (
 	reg [`WORD_SIZE-1:0] MEM_WB_rt;
 	reg [1:0] MEM_WB_rd;
 	assign address2 = EX_MEM_ALUout;
+	
 	//** MEM STAGE END **//
 
 	//** WB STAGE **//
+	
 	wire MemtoReg = MEM_WB_sig[7];
 	wire RegWrite = MEM_WB_sig[4];
 	reg [`WORD_SIZE-1:0] WWD_output;
@@ -148,8 +156,10 @@ module data_path (
 	assign regFileWrite = RegWrite;
 	assign output_reg = WWD_output;
 	assign rd = MEM_WB_rd;
+	
 	//** WB STAGE END **//
 
+	/* Forwarding unit section */
 
 	wire [1:0] f_A;
 	wire [1:0] f_B;
@@ -161,19 +171,16 @@ module data_path (
 	assign forwardB = (f_B == 2'b10) ? EX_MEM_ALUout : ((f_B == 2'b01) ? writeData : ID_EX_readData2);
 	assign forward_readData1 = (ID_f_A == 2'b10) ? EX_MEM_ALUout : ((ID_f_A == 2'b01) ? writeData : readData1);
 	assign forward_readData2 = (ID_f_B == 2'b10) ? EX_MEM_ALUout : ((ID_f_B == 2'b01) ? writeData : readData2);
+	
+	/* Hazard detection unit section */
 	wire isJMP = signal[10];
-	//wire flush = isJMP || isBR;
 
 	hazard_detection_unit HAZ(ID_EX_signal, RegDst ? ID_EX_rd : ID_EX_rt, EX_MEM_sig, EX_MEM_rd, rs, rt, signal, stall);
 
-	//assign nextPC = stall ? PC : ((isBR) ? (bcond ? br_target : PC) : (isJMP ? jmp_target : PC + 1));
 	assign is_halted = (MEM_WB_sig[15:12] == 2);
 
-
-	/* Branch Prediction Section */
+	/* Branch prediction section */
 	wire [`WORD_SIZE-1:0] btb_result;
-	//wire take = 0;  //whether to take branch or not
-	//wire take = 1;
 	wire take;
 	wire target = isBR ? br_target : (isJMP ? jmp_target : jmp_target);
 	
@@ -185,10 +192,8 @@ module data_path (
 	wire [`WORD_SIZE-1:0] predict_PC = isJMP ? btb_result : ((take && isBR) ? btb_result : PC + 1);
 
 	assign nextPC = stall ? PC : ((isBR) ? (!prediction_fail ? predict_PC : right_br_target) : (isJMP ? (!prediction_fail ? predict_PC : jmp_target) : predict_PC));
-
-
-	//branch prediction
-
+	
+	/* Initialization */
 	initial begin
 		IF_ID_ins <= `NOP;
 		IF_ID_nextPC <= 0;

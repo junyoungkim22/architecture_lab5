@@ -17,6 +17,8 @@ module br_resolve_unit (
 	wire greater = (readData1 > 0) ? 1 : 0;
 	wire less = (readData1 < 0) ? 1 : 0;
 
+	//set bcond to 1 when branch is taken.
+	//if not, set to 0
 	wire BNE_taken = (opcode == `BNE_OP && !equal) ? 1 : 0;
 	wire BEQ_taken = (opcode == `BEQ_OP && equal) ? 1 : 0;
 	wire BGZ_taken = (opcode == `BGZ_OP && greater) ? 1 : 0;
